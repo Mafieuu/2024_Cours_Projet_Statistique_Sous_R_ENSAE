@@ -1,0 +1,215 @@
+---
+title: "TP3 de projet sur R"
+author: "Moussa Sow Dieme"
+date: "2024-05-01"
+output: 
+  rmdformats::readthedown
+---
+# TP3, Projet statistique sous R et  python
+
+```{r include=FALSE, r,message=FALSE}
+
+library(ggplot2)
+library(tidyverse)
+library(here)
+setwd(here())
+
+```
+## Importation des bases de donnees
+
+```{r }
+suppressMessages(
+	annual_growth <- read_csv("../data/annual-growth-in-gni-per-capita.csv"))
+suppressMessages(
+	gender_inequality <- read_csv("../data/gender-inequality-index.csv"))
+suppressMessages(
+	population_growth <- read_csv("../data/population-growth-annual.csv"))
+
+```
+## Construction du graphique 1
+
+```{r}
+# Pour les zones geographiques concerne par le graphique :
+#	* filtrage
+#	* regroupement selon l'annee
+#	* pour chaque annee on ne retient que la moyenne et seul la colonne Values est retenu en plus de l'annee
+
+# ----------------- Niger -----------------
+
+niger_data<- annual_growth %>% 
+	filter(`Region Name` == "Niger")%>%
+	group_by(`Start Year`) %>%
+	summarise(Value = mean(Value))
+niger_data$pays = "Niger"
+
+# ----------------- West africa -----------------
+
+regions_to_include <- c("Senegal", "Mali", "Burkina Faso", "Cabo Verde", "Côte d’Ivoire", "Gambia", "Ghana", "Papua New Guinea","Guinea-Bissau", "Mauritania", "Nigeria", "Sierra Leone", "Togo", "Benin")
+west_africa_data <- annual_growth %>% 
+	filter(`Region Name` %in% regions_to_include)%>%
+	group_by(`Start Year`) %>%
+	summarise(Value = mean(Value))
+west_africa_data$pays = "Western Africa"
+# ----------------- Word -----------------
+#  
+world_data <- annual_growth %>%
+	group_by(`Start Year`) %>%
+	summarise(Value = mean(Value))
+world_data$pays = "World"
+
+
+# ----------------- Fusion en un data frame -----------------
+df_graphe <- rbind(niger_data, west_africa_data, world_data) 
+#  fusion par ligne (colonne annee comme id)
+```
+
+
+```{r}
+# ----------------- Affichage du graphique 1 -----------------
+
+df_graphe %>%
+	filter(`Start Year` >= 1970 & `Start Year` <= 2021) %>%
+	ggplot() +  
+	aes(x = `Start Year`, y = Value, colour = pays) +  # definition des donnees et des esthetiques
+	geom_line(show.legend = FALSE, size = 0.5) +  # ajout des lignes reliant les points
+	geom_point(shape = 16, size = 2) +  # ajout des points pour chaque observation
+	scale_fill_hue(direction = 1.2) +  # definition de la palette de couleurs pour remplir les formes geometriques
+	scale_color_manual(values = c("Niger" = "#85C1E9", "Western Africa" = "#5B5B5C", "World" = "#B2BABB")) +  # definition des couleurs manuelles
+	labs(title = "Figure : Income growth and distribution (Gini Index)",  # definition des titres des axes et du graphique
+		caption = "Source : World Bank", x = NULL, y = NULL, color = NULL) +
+	scale_y_continuous(breaks = seq(from = -5, to = 15, by = 5), expand = c(0, 0), limits = c(-7, 10)) +  # definition des etiquettes de l'axe y
+	theme_minimal() +
+	theme(
+		legend.position = "top",  # positionnement de la legende en haut du graphique
+		legend.justification = "left",  # justification de la legende a gauche
+		legend.direction = "horizontal",  # direction de la legende
+		plot.caption = element_text(hjust = 0),  # ajustement du texte de la legende
+		panel.grid.minor = element_blank(),  # suppression des lignes de grille mineures
+		panel.grid.major.y = element_line(linetype = "dashed"),  # lignes de grille majeures en pointilles
+		plot.margin = margin(10,10,10,10)  # marge autour du graphique
+  )
+```
+
+## Construction du graphique 2
+
+```{r}
+
+ # pour la V2 on peut se servir d'une fonction vue que seul les data changent
+
+# ----------------- Niger -----------------
+niger_data_2<- population_growth %>% 
+	filter(`Region Name` == "Niger")%>%
+	group_by(`Start Year`) %>%
+	summarise(Value = mean(Value))
+niger_data_2$pays = "Niger"
+
+# ----------------- West africa -----------------
+west_africa_data_2 <- population_growth %>% 
+	filter(`Region Name` %in% regions_to_include)%>%
+	group_by(`Start Year`) %>%
+	summarise(Value = mean(Value))
+west_africa_data_2$pays = "Western Africa"
+# ----------------- Word -----------------
+#  
+world_data_2 <- population_growth %>%
+	group_by(`Start Year`) %>%
+	summarise(Value = mean(Value))
+world_data_2$pays = "World"
+
+
+# ----------------- Fusion en un data frame -----------------
+df_graphe_2 <- rbind(niger_data_2, west_africa_data_2, world_data_2) 
+#  fusion par ligne (colonne annee comme id)
+
+```
+
+
+```{r}
+
+# ----------------- Affichage du graphique 2 -----------------
+ggplot(df_graphe_2, aes(x = `Start Year`, y = Value)) +  
+  geom_point(aes(color = `pays`), size = 2) +  # Ajout des points avec la couleur définie par "pays"
+  geom_line(data = df_graphe_2, aes(x = `Start Year`, y = Value, group = `pays`, color = `pays`), size = 1, show.legend = FALSE) +  # Ajout des lignes pour chaque "pays"
+  scale_x_continuous(breaks = seq(1960, 2020, 10)) +  # Définition des étiquettes de l'axe X
+  labs(caption = "Source : World Bank", title = "Figure : Annual population growth (%)") +  # Définition des étiquettes du graphique
+  theme_minimal() +  # Application d'un thème minimal
+  theme(
+    title = element_text(size = 10, color = "black", face = "italic"),  
+    legend.title = element_blank(),  # Suppression du titre de la légende
+    legend.position = "top",  # Positionnement de la légende en haut
+    legend.direction = "horizontal",  # Direction de la légende
+    legend.justification = "left",  # Justification de la légende
+    axis.title.x = element_blank(),  # Suppression du titre de l'axe X
+    axis.title.y = element_blank(),  # Suppression du titre de l'axe Y
+    axis.ticks = element_blank(),  # Suppression des marques sur les axes
+    panel.grid.major.y = element_line(color = "#99AAB5", size = 0.5,linetype = "dashed"), # Couleur et taille des lignes horizontales
+    panel.grid.major.x = element_line(color = "#99AAB5", size = 0.5, ),  
+    panel.background = element_blank(),  # Suppression du fond du panel
+    plot.caption = element_text(hjust = 0)  # Ajustement du texte de la légende
+  ) +  # Fermeture du bloc theme
+  scale_color_manual(values = c("#0077be", "#5A5956", "#B6B6B4")) +  # Définition manuelle des couleurs de la légende
+  expand_limits(y = c(0.01, NA))  # Ajuster les limites de l'axe y pour commencer légèrement au-dessus de zéro sans afficher explicitement la valeur 0
+  								  # ne marche pas (faire disparaitre la valeur 0)
+```
+
+## Construction du graphique 3
+
+```{r}
+
+# pour la V2 on peut se servir d'une fonction vue que seul les data changent
+
+# ----------------- Niger -----------------
+niger_data_3<- gender_inequality %>% 
+	filter(`Region Name` == "Niger")%>%
+	group_by(`Start Year`) %>%
+	summarise(Value = mean(Value))
+niger_data_3$pays = "Niger"
+
+# ----------------- West africa -----------------
+
+west_africa_data_3 <- gender_inequality %>% 
+	filter(`Region Name` %in% regions_to_include)%>%
+	group_by(`Start Year`) %>%
+	summarise(Value = mean(Value))
+west_africa_data_3$pays = "Western Africa"
+
+# ----------------- Word -----------------
+#  
+world_data_3 <- gender_inequality %>%
+	group_by(`Start Year`) %>%
+	summarise(Value = mean(Value))
+world_data_3$pays = "World"
+
+
+# ----------------- Fusion en un data frame -----------------
+
+df_graphe_3 <- rbind(niger_data_3, west_africa_data_3, world_data_3) 
+#  fusion par ligne (colonne annee comme id)
+
+```
+
+
+```{r}
+# ----------------- Affichage du graphique 3 -----------------
+ggplot(df_graphe_3) +  
+    aes(x = `Start Year`, y = Value, colour = pays) +  # Définition des données et des esthétiques
+    geom_line(show.legend = FALSE) +  # Ajout des lignes reliant les points
+    geom_point() +  # Ajout des points pour chaque observation
+    scale_color_manual(values = c(Niger = "#85C1E9", `Western Africa` = "#5B5B5C", World = "#B2BABB")) +  # Définition des couleurs manuelles
+    theme_minimal() +  # Application d'un thème minimal
+    labs(x = "Année", y = "Valeur", title = "Figure : Indice d'inégalité de genre") +  # Définition des titres des axes et du graphique
+    theme(
+        legend.position = "top",  # Positionner la légende en haut du graphique
+        legend.justification = "left",  # Justifier la légende à gauche
+        plot.title = element_text(face = "italic", hjust = 0.5, colour = "#0F4761"),# Personnaliser le style du titre du graphique
+        plot.caption = element_text(hjust = 0)  # Justifier le texte de la légende à gauche
+    ) +
+    labs(caption = "Source : UNDP") +  # Ajouter une légende pour la source des données
+    annotate("label", x = 2010, y = 0.4, label = "World : 0.4",  # Ajout de l'étiquette "World : 0.4"
+             fill = "white", colour = "black", size = 3, fontface = "italic",
+             label.padding = unit(0.2, "lines"), label.r = unit(0.1, "lines"), label.size = 0.2,
+             )
+
+```
+
+The end
